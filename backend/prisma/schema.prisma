@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  email         String   @unique
+  name          String?
+  googleId      String   @unique
+  refreshToken  String?
+  accessToken   String?
+  tokenExpiry   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  emails        Email[]
+  rules         Rule[]
+  settings      Settings?
+}
+
+model Email {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  gmailId       String   @unique
+  threadId      String
+  from          String
+  to            String[]
+  subject       String
+  body          String
+  snippet       String
+  category      String?
+  aiSummary     String?
+  aiReplySuggestions Json?
+  isRead        Boolean  @default(false)
+  isStarred     Boolean  @default(false)
+  isArchived    Boolean  @default(false)
+  labels        String[]
+  receivedAt    DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Rule {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  name          String
+  condition     String
+  operator      String
+  value         String
+  action        String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Settings {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @unique @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  defaultTone   String   @default("professional")
+  autoArchive   Json
+  notifications Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
