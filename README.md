@@ -1,3 +1,11 @@
+---
+title: InboxFlow AI
+emoji: 📬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # 📬 InboxFlow AI — AI-Powered Email Manager (SaaS)
 
 **Live Demo:** [beast49-inboxflow-ai.hf.space](https://beast49-inboxflow-ai.hf.space)  
