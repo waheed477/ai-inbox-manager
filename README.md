@@ -3,10 +3,10 @@ title: InboxFlow AI
 emoji: 📬
 colorFrom: blue
 colorTo: indigo
+app_port: 3000
 sdk: docker
 pinned: false
 ---
-
 # 📬 InboxFlow AI — AI-Powered Email Manager (SaaS)
 
 **Live Demo:** [beast49-inboxflow-ai.hf.space](https://beast49-inboxflow-ai.hf.space)  
@@ -56,7 +56,7 @@ pinned: false
 
 ## 🛠️ Local Setup
 
-\`\`\`bash
+```bash
 # Clone repo
 git clone https://github.com/waheed477/ai-inbox-manager.git
 cd ai-inbox-manager
@@ -73,21 +73,15 @@ npm run dev
 cd frontend
 npm install
 npm run dev
-\`\`\`
 
-Visit `http://localhost:5173`
+Visit http://localhost:5173
 
----
+🚀 Deployment
+Dockerized deployment on Hugging Face Spaces (see Dockerfile & docker-compose.yml). Or deploy to Vercel/Render for both frontend & backend.
 
-## 🚀 Deployment
 
-Dockerized deployment on Hugging Face Spaces (see `Dockerfile` & `docker-compose.yml`). Or deploy to Vercel/Render for both frontend & backend.
-
----
-
-## 📂 Project Structure
-
-\`\`\`
+📂 Project Structure
+text
 ai-inbox-manager/
 ├── frontend/         # React + Vite + Tailwind + shadcn/ui
 │   ├── src/
@@ -104,8 +98,5 @@ ai-inbox-manager/
 │   └── middleware.ts # Rate limiting, security headers, CORS
 ├── docker-compose.yml
 └── README.md
-\`\`\`
 
----
-
-*Built with ❤️ for modern SaaS recruitment.*
+Built with ❤️ for modern SaaS recruitment....
