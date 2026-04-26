@@ -14,8 +14,9 @@ import {
   Twitter,
   Github,
   Linkedin,
+  Archive, // ✅ Added Archive icon
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/", label: "Inbox", icon: Inbox, badge: 4 },
   { href: "/important", label: "Important", icon: Star },
   { href: "/sent", label: "Sent", icon: Send },
+  { href: "/archived", label: "Archived", icon: Archive }, // ✅ Added Archived link
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -88,11 +90,29 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { emails } = useEmailStore();
+  const { emails, clearEmails } = useEmailStore();
   const unreadCount = emails.filter((e) => !e.isRead).length;
 
+  // Real user session state
+  const [user, setUser] = useState<{ name?: string; email?: string; image?: string } | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+
+  // Fetch user session on mount
+  useEffect(() => {
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.user) {
+          setUser(data.user);
+        }
+        setSessionLoading(false);
+      })
+      .catch(() => setSessionLoading(false));
+  }, []);
+
+  // Updated: Simple logout redirect to signout endpoint
   const handleLogout = () => {
-    toast.info("Logged out (mock)", { description: "No actual session to clear." });
+    window.location.href = '/api/auth/signout';
   };
 
   return (
@@ -129,16 +149,28 @@ export default function Layout({ children }: LayoutProps) {
           </button>
         </div>
 
-        {/* Gmail Connected Button */}
+        {/* Gmail Connection Status - Real */}
         <div className="px-4 pt-4">
-          <button
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 cursor-not-allowed opacity-80"
-            disabled
-          >
-            <Mail className="w-4 h-4 text-green-600" />
-            <span className="text-xs font-medium text-green-700 dark:text-green-400">Gmail Connected (Mock)</span>
-            <span className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          </button>
+          {user ? (
+            <div className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <Mail className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-medium text-green-700 dark:text-green-400">
+                Gmail Connected
+              </span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            </div>
+          ) : sessionLoading ? (
+            <div className="w-full h-9 rounded-lg bg-muted animate-pulse" />
+          ) : (
+            <Link href="/login">
+              <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                <Mail className="w-4 h-4 text-gray-500" />
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Connect Gmail
+                </span>
+              </button>
+            </Link>
+          )}
         </div>
 
         {/* Navigation */}
@@ -176,37 +208,47 @@ export default function Layout({ children }: LayoutProps) {
           })}
         </nav>
 
-        {/* User section */}
+        {/* User section with Sign Out button */}
         <div className="px-4 pb-3 pt-3 border-t border-sidebar-border">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent transition-colors group">
-                <Avatar className="w-8 h-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                    JD
-                  </AvatarFallback>
-                </Avatar>
+          {user ? (
+            <>
+              {/* User profile info */}
+              <div className="flex items-center gap-3 px-2 py-2 mb-2">
+                {user.image ? (
+                  <img src={user.image} alt="" className="w-8 h-8 rounded-full" />
+                ) : (
+                  <Avatar className="w-8 h-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                      {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-xs font-semibold text-sidebar-foreground truncate">Jane Doe</p>
-                  <p className="text-xs text-muted-foreground truncate">jane@inboxflow.ai</p>
+                  <p className="text-xs font-semibold text-sidebar-foreground truncate">
+                    {user.name || 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.email || ''}
+                  </p>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-sidebar-foreground transition-colors" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem className="text-sm" disabled>
-                Profile (Mock)
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-sm text-destructive focus:text-destructive"
+              </div>
+              
+              {/* Sign Out button */}
+              <button
                 onClick={handleLogout}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </>
+          ) : sessionLoading ? (
+            <div className="w-full h-12 rounded-lg bg-muted animate-pulse" />
+          ) : (
+            <div className="text-xs text-muted-foreground text-center py-2">
+              Not signed in
+            </div>
+          )}
         </div>
 
         {/* Sidebar Footer */}
@@ -263,18 +305,18 @@ export default function Layout({ children }: LayoutProps) {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               {[
-                { label: "Privacy", href: "#" },
-                { label: "Terms", href: "#" },
+                { label: "Privacy", href: "/privacy" },
+                { label: "Terms", href: "/terms" },
                 { label: "Help", href: "#" },
               ].map(({ label, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  onClick={(e) => e.preventDefault()}
-                  className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                >
-                  {label}
-                </a>
+                <Link key={label} href={href}>
+                  <a
+                    onClick={(e) => e.preventDefault()}
+                    className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
+                  >
+                    {label}
+                  </a>
+                </Link>
               ))}
             </div>
 

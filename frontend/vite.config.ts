@@ -3,27 +3,25 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  base: '/',
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, './src'),
     },
-  },
-  root: '.',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
   },
   server: {
     port: 5173,
-    host: true,
-  },
-  preview: {
-    port: 5173,
-    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+        ws: false, // ← DON'T proxy WebSocket (HMR)
+      },
+    },
+    hmr: {
+      host: 'localhost',
+      port: 5173, // Explicitly tell the client where to connect
+    },
   },
 })
-

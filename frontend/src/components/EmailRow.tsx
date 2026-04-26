@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Star, Brain } from "lucide-react";
-import { Email } from "@/data/mockEmails";
+import { Email } from "@/store/emailStore";
 import { useEmailStore } from "@/store/emailStore";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,7 +13,7 @@ interface EmailRowProps {
 }
 
 export default function EmailRow({ email, isSelected }: EmailRowProps) {
-  const { setSelectedEmail, toggleImportant, generateSummary } = useEmailStore();
+  const { setSelectedEmail, toggleImportant, generateSummary, toggleStar } = useEmailStore();
 
   const handleSummarize = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -27,6 +27,15 @@ export default function EmailRow({ email, isSelected }: EmailRowProps) {
   const handleToggleImportant = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleImportant(email.id);
+  };
+
+  // ✅ New handler for star button using toggleStar
+  const handleStarClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await toggleStar(email.id);
+    toast.success(email.isImportant ? "Removed from important" : "Marked as important", {
+      description: email.isImportant ? "Star removed from this email." : "Email added to important list.",
+    });
   };
 
   return (
@@ -80,10 +89,11 @@ export default function EmailRow({ email, isSelected }: EmailRowProps) {
           <Brain className="w-3 h-3" />
           Summarize
         </Button>
+        {/* ✅ Updated star button with toggleStar */}
         <button
-          onClick={handleToggleImportant}
+          onClick={handleStarClick}
           className={cn(
-            "p-1 rounded transition-colors",
+            "p-1 rounded transition-colors hover:bg-muted",
             email.isImportant ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"
           )}
         >

@@ -1,8 +1,15 @@
 import { google } from 'googleapis';
+import { prisma } from './prisma';
 
-const HARDCODED_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN || '';
+export async function getGmailClient(userEmail: string) {
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+  });
 
-export async function getGmailClient() {
+  if (!user?.refreshToken) {
+    throw new Error('No refresh token found for user');
+  }
+
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -10,7 +17,7 @@ export async function getGmailClient() {
   );
 
   oauth2Client.setCredentials({
-    refresh_token: HARDCODED_REFRESH_TOKEN,
+    refresh_token: user.refreshToken,
   });
 
   return google.gmail({ version: 'v1', auth: oauth2Client });

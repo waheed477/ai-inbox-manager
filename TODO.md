@@ -1,13 +1,11 @@
-# Fix NextAuth PrismaAdapter Error - Progress Tracker
+# Fix Plan: useFilteredEmails & Font Errors
 
-## Steps (approved plan):
-
-- [x] 1. Create this TODO.md file ✅
-- [x] 2. Update backend/prisma/schema.prisma: Add NextAuth models (Account, Session, VerificationToken), update User model with relations/emailVerified ✅
-- [x] 3. Run migrations: cd backend && npx prisma db push && npx prisma generate (schema fixed, push successful despite generate EPERM) ✅
-- [x] 4. Update backend/lib/auth.ts: Enhance JWT/session callbacks for user data ✅
-- [ ] 5. Restart dev server and test Google OAuth sign-in (check /api/auth/signin, verify no error, docs in Atlas)
-- [ ] 6. Complete: Remove this file or mark all ✅
-
-**Current status**: Starting schema updates next.
+## Steps
+- [x] 1. Update `frontend/src/data/mockEmails.ts` — add `aiReplySuggestions?: string[]` to `Email` interface.
+- [x] 2. Rewrite `frontend/src/store/emailStore.ts` — expand store, implement all missing state/actions, and export `useFilteredEmails` hook.
+- [x] 3. Fix `frontend/src/pages/InboxPage.tsx` — remove invalid `onClick` prop from `<EmailRow>`.
+- [x] 4. Fix `frontend/index.html` — remove Google Fonts `<link>` tags to eliminate offline error.
+- [x] 5. Fix `frontend/src/index.css` — add `font-family` fallback so UI renders correctly offline.
+- [x] 6. Fix `frontend/src/components/EmailDetailPane.tsx` — fix optional chaining strict-mode comparison.
+- [x] 7. Run TypeScript type-check in `frontend/` — zero errors.
 

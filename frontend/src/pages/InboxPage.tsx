@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Brain, Star, X } from "lucide-react";
+import { Search, Brain, Star, X, RefreshCw } from "lucide-react"; // ✅ Added RefreshCw
+import { useLocation } from "wouter";
 import { useEmailStore, useFilteredEmails } from "@/store/emailStore";
 import { EmailCategory } from "@/data/mockEmails";
 import EmailRow from "@/components/EmailRow";
@@ -9,16 +10,56 @@ import SemanticSearchModal from "@/components/SemanticSearchModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { apiRequest } from '@/lib/api'; // ✅ Added for sync API
 
 const CATEGORIES: EmailCategory[] = ["All", "Important", "Work", "Promotions"];
 
 export default function InboxPage() {
-  const { selectedEmail, selectedCategory, searchQuery, priorityMode, setPriorityMode, setSelectedCategory, setSearchQuery } = useEmailStore();
-  const emails = useFilteredEmails();
-  const [isLoading] = useState(false);
+  const [, setLocation] = useLocation(); // For navigation to Important page
+  
+  // Get email store state and actions
+  const { 
+    emails, 
+    loading,           // Added loading state from store
+    selectedEmail, 
+    selectedCategory, 
+    searchQuery, 
+    priorityMode, 
+    setPriorityMode, 
+    setSelectedCategory, 
+    setSearchQuery,
+    fetchEmails,       // Added fetchEmails action
+    selectEmail        // Added selectEmail action
+  } = useEmailStore();
+  
+  const filteredEmails = useFilteredEmails(); // Client-side filtering
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  
+  // ✅ Sync state
+  const [syncing, setSyncing] = useState(false);
 
-  // Cmd+K / Ctrl+K shortcut
+  // Fetch emails on component mount - REAL API CALL
+  useEffect(() => {
+    fetchEmails(); // This will call the API with session header
+  }, [fetchEmails]);
+
+  // ✅ Handle sync button click
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await apiRequest('/api/gmail/sync', { method: 'POST' });
+      await fetchEmails(); // Refresh emails after sync
+      toast.success('Inbox synced successfully');
+    } catch (err) {
+      console.error('Sync failed:', err);
+      toast.error('Sync failed', { description: 'Please try again.' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Cmd+K / Ctrl+K shortcut for search modal
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -29,6 +70,15 @@ export default function InboxPage() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  // Handle category click - redirect Important to separate page
+  const handleCategoryClick = (cat: EmailCategory) => {
+    if (cat === "Important") {
+      setLocation('/important');
+    } else {
+      setSelectedCategory(cat);
+    }
+  };
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -42,9 +92,19 @@ export default function InboxPage() {
       >
         {/* Header */}
         <div className="px-4 pt-4 pb-0 space-y-3 border-b border-border">
-          {/* Title row with Priority toggle */}
+          {/* Title row with Priority toggle and Sync button */}
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-foreground flex-1">Inbox</h2>
+
+            {/* ✅ Sync Button */}
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="p-2 rounded-lg hover:bg-muted transition disabled:opacity-50"
+              title="Sync inbox"
+            >
+              <RefreshCw className={`w-4 h-4 text-muted-foreground ${syncing ? 'animate-spin' : ''}`} />
+            </button>
 
             {/* Priority Mode chip — animates in when active */}
             <AnimatePresence>
@@ -105,34 +165,76 @@ export default function InboxPage() {
             </button>
           </div>
 
-          {/* Category tabs */}
+          {/* Category tabs - Important tab redirects to /important page */}
           <div className="flex gap-0 -mx-4">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={cn(
-                  "flex-1 pb-2.5 pt-1 text-xs font-medium transition-all border-b-2 relative",
-                  selectedCategory === cat
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {cat}
-                {selectedCategory === cat && (
-                  <motion.div
-                    layoutId="categoryUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  />
-                )}
-              </button>
-            ))}
+            <button
+              onClick={() => handleCategoryClick("All")}
+              className={cn(
+                "flex-1 pb-2.5 pt-1 text-xs font-medium transition-all border-b-2 relative",
+                selectedCategory === "All"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              All
+              {selectedCategory === "All" && (
+                <motion.div
+                  layoutId="categoryUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                />
+              )}
+            </button>
+            
+            {/* Important tab - redirects to separate page */}
+            <button
+              onClick={() => handleCategoryClick("Important")}
+              className="flex-1 pb-2.5 pt-1 text-xs font-medium transition-all border-b-2 border-transparent text-muted-foreground hover:text-foreground"
+            >
+              Important
+            </button>
+            
+            <button
+              onClick={() => handleCategoryClick("Work")}
+              className={cn(
+                "flex-1 pb-2.5 pt-1 text-xs font-medium transition-all border-b-2 relative",
+                selectedCategory === "Work"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Work
+              {selectedCategory === "Work" && (
+                <motion.div
+                  layoutId="categoryUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                />
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleCategoryClick("Promotions")}
+              className={cn(
+                "flex-1 pb-2.5 pt-1 text-xs font-medium transition-all border-b-2 relative",
+                selectedCategory === "Promotions"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Promotions
+              {selectedCategory === "Promotions" && (
+                <motion.div
+                  layoutId="categoryUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
+                />
+              )}
+            </button>
           </div>
         </div>
 
         {/* Email list */}
         <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
+          {loading ? (
+            // Loading skeleton
             <div className="space-y-0">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex gap-3 px-4 py-3.5 border-b border-border">
@@ -145,7 +247,8 @@ export default function InboxPage() {
                 </div>
               ))}
             </div>
-          ) : emails.length === 0 ? (
+          ) : filteredEmails.length === 0 ? (
+            // Empty state
             <div className="flex flex-col items-center justify-center h-48 text-center px-6">
               <p className="text-sm font-medium text-foreground">No emails found</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -153,12 +256,14 @@ export default function InboxPage() {
               </p>
             </div>
           ) : (
+            // Email list with animations
             <AnimatePresence>
-              {emails.map((email) => (
+              {filteredEmails.map((email) => (
                 <EmailRow
                   key={email.id}
                   email={email}
                   isSelected={selectedEmail?.id === email.id}
+                  onClick={() => selectEmail(email.id)}
                 />
               ))}
             </AnimatePresence>

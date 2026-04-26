@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { format, addDays, setHours, setMinutes } from "date-fns";
 import { useEmailStore } from "@/store/emailStore";
+import { useScheduleStore } from '@/store/scheduleStore';
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { apiRequest } from '@/lib/api';
+
+// API helper function with session header
+const apiRequestWithSession = async (url: string, options: RequestInit = {}) => {
+  const sessionId = localStorage.getItem('sessionId');
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Session-ID': sessionId || '',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+const safeArray = (data: any): string[] => {
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'string') return [data];
+  return [];
+};
 
 const TONE_OPTIONS = ["Formal", "Friendly", "Concise"] as const;
 
@@ -52,15 +80,20 @@ function formatScheduled(date: Date, hour: number, minute: number): string {
 export default function EmailDetailPane() {
   const {
     selectedEmail,
-    isSummarizing,
     replyText,
     selectedTone,
     setSelectedEmail,
     toggleImportant,
-    generateSummary,
     setReplyText,
     setSelectedTone,
   } = useEmailStore();
+
+  // Schedule store
+  const { scheduleEmail } = useScheduleStore();
+
+  // Local state for API calls
+  const [summarizing, setSummarizing] = useState(false);
+  const [generatingReplies, setGeneratingReplies] = useState(false);
 
   // Schedule state
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -69,12 +102,44 @@ export default function EmailDetailPane() {
   const [scheduleMinute, setScheduleMinute] = useState(0);
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
 
+  // New schedule form state for simple date/time inputs
+  const [scheduleDateInput, setScheduleDateInput] = useState('');
+  const [scheduleTimeInput, setScheduleTimeInput] = useState('09:00');
+
+  // REPLACED: Real API call for summarize
   const handleSummarize = async () => {
     if (!selectedEmail) return;
-    await generateSummary(selectedEmail.id);
-    toast.success("AI Summary Generated", {
-      description: "Summary: Request for Q3 budget approval. Action needed by Friday.",
-    });
+    setSummarizing(true);
+    try {
+      const data = await apiRequestWithSession('/api/ai/summarize', {
+        method: 'POST',
+        body: JSON.stringify({ emailBody: selectedEmail.body }),
+      });
+      selectedEmail.aiSummary = data.summary;
+      setSummarizing(false);
+      toast.success('AI summary generated');
+    } catch (err) {
+      setSummarizing(false);
+      toast.error('Failed to summarize');
+    }
+  };
+
+  // NEW: Real API call for reply suggestions
+  const handleSuggestReplies = async () => {
+    if (!selectedEmail) return;
+    setGeneratingReplies(true);
+    try {
+      const data = await apiRequestWithSession('/api/ai/reply-suggestions', {
+        method: 'POST',
+        body: JSON.stringify({ emailBody: selectedEmail.body }),
+      });
+      selectedEmail.aiReplySuggestions = data.replies;
+      setGeneratingReplies(false);
+      toast.success('Reply suggestions ready');
+    } catch (err) {
+      setGeneratingReplies(false);
+      toast.error('Failed to generate replies');
+    }
   };
 
   const handleSmartReply = (type: keyof typeof SMART_REPLIES) => {
@@ -95,6 +160,30 @@ export default function EmailDetailPane() {
     setScheduledFor(null);
   };
 
+  // Handle schedule with real store
+  const handleSchedule = async () => {
+    if (!scheduleDateInput || !selectedEmail) return;
+    
+    const scheduledAt = new Date(`${scheduleDateInput}T${scheduleTimeInput}`).toISOString();
+    
+    try {
+      await scheduleEmail({
+        to: selectedEmail.senderEmail || '',
+        subject: `Re: ${selectedEmail.subject || ''}`,
+        body: replyText || '',
+        scheduledAt,
+      });
+      toast.success(`Email scheduled for ${scheduleDateInput} at ${scheduleTimeInput}`);
+      setReplyText("");
+      setScheduleDateInput('');
+      setScheduleTimeInput('09:00');
+      setScheduledFor(null);
+    } catch (err) {
+      console.error('Failed to schedule email:', err);
+      toast.error('Failed to schedule email');
+    }
+  };
+
   const handleScheduleConfirm = () => {
     const label = formatScheduled(scheduleDate, scheduleHour, scheduleMinute);
     setScheduledFor(label);
@@ -110,12 +199,13 @@ export default function EmailDetailPane() {
     toast.info("Schedule cancelled");
   };
 
-  // Reset schedule state when email changes
   const handleEmailChange = () => {
     setScheduledFor(null);
     setScheduleDate(addDays(new Date(), 1));
     setScheduleHour(9);
     setScheduleMinute(0);
+    setScheduleDateInput('');
+    setScheduleTimeInput('09:00');
   };
 
   return (
@@ -130,7 +220,7 @@ export default function EmailDetailPane() {
           onAnimationStart={handleEmailChange}
           className="flex flex-col h-full bg-background overflow-y-auto"
         >
-          {/* Toolbar */}
+          {/* ✅ UPDATED Toolbar with functional Archive and Delete */}
           <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border flex-shrink-0">
             <button
               className="lg:hidden p-1 rounded hover:bg-muted"
@@ -139,6 +229,7 @@ export default function EmailDetailPane() {
               <X className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-1.5 ml-auto">
+              {/* Star - already functional */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -147,17 +238,57 @@ export default function EmailDetailPane() {
               >
                 <Star className={cn("w-4 h-4", selectedEmail.isImportant && "fill-amber-500 text-amber-500")} />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+
+              {/* Archive - functional */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={async () => {
+                  try {
+                    await apiRequest('/api/gmail/archive', {
+                      method: 'POST',
+                      body: JSON.stringify({ emailId: selectedEmail.id }),
+                    });
+                    toast.success('Email archived');
+                    setSelectedEmail(null);
+                  } catch {
+                    toast.error('Failed to archive');
+                  }
+                }}
+              >
                 <Archive className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+
+              {/* Delete - functional */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                onClick={async () => {
+                  try {
+                    await apiRequest('/api/gmail/delete', {
+                      method: 'POST',
+                      body: JSON.stringify({ emailId: selectedEmail.id }),
+                    });
+                    // Remove from local store
+                    useEmailStore.setState((state) => ({
+                      emails: state.emails.filter((e) => e.id !== selectedEmail.id),
+                    }));
+                    setSelectedEmail(null);
+                    toast.success('Email deleted');
+                  } catch {
+                    toast.error('Failed to delete');
+                  }
+                }}
+              >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
           {/* Email content */}
-          <div className="flex-1 px-6 py-5 space-y-5">
+          <div className="flex-1 px-6 py-5 space-y-5 overflow-visible">
             {/* Subject + sender */}
             <div>
               <h1 className="text-xl font-semibold text-foreground mb-3 leading-tight">
@@ -180,24 +311,24 @@ export default function EmailDetailPane() {
             </div>
 
             {/* AI Summary Card */}
-            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-amber-200 dark:bg-amber-800">
-                  <Brain className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 p-4 overflow-visible">
+              <div className="flex items-center justify-between gap-2 mb-3 overflow-visible">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-md bg-amber-200 dark:bg-amber-800 flex-shrink-0">
+                    <Brain className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                  </div>
+                  <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">AI Summary</span>
                 </div>
-                <span className="text-sm font-semibold text-amber-900 dark:text-amber-200">AI Summary</span>
-                {!isSummarizing && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-auto h-6 px-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900"
-                    onClick={handleSummarize}
-                  >
-                    Refresh
-                  </Button>
-                )}
+                <button
+                  onClick={handleSummarize}
+                  disabled={summarizing}
+                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 hover:text-white active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 shadow-sm flex-shrink-0"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  {summarizing ? 'Summarizing...' : 'Summarize'}
+                </button>
               </div>
-              {isSummarizing ? (
+              {summarizing ? (
                 <div className="space-y-2">
                   <Skeleton className="h-3.5 w-full bg-amber-200/60 dark:bg-amber-800/40" />
                   <Skeleton className="h-3.5 w-5/6 bg-amber-200/60 dark:bg-amber-800/40" />
@@ -205,13 +336,58 @@ export default function EmailDetailPane() {
                 </div>
               ) : (
                 <ul className="space-y-1.5">
-                  {selectedEmail.aiSummary.map((point, i) => (
+                  {safeArray(selectedEmail.aiSummary).map((point, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-200">
                       <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>
                       <span>{point}</span>
                     </li>
                   ))}
                 </ul>
+              )}
+            </div>
+
+            {/* AI Reply Suggestions Card */}
+            <div className="rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 p-4 overflow-visible">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-md bg-purple-200 dark:bg-purple-800">
+                    <Reply className="w-3.5 h-3.5 text-purple-700 dark:text-purple-300" />
+                  </div>
+                  <span className="text-sm font-semibold text-purple-900 dark:text-purple-200">AI Reply Suggestions</span>
+                </div>
+                {!generatingReplies && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900 hover:text-purple-800 dark:hover:text-purple-200 flex-shrink-0"
+                    onClick={handleSuggestReplies}
+                  >
+                    Generate
+                  </Button>
+                )}
+              </div>
+              {generatingReplies ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-3.5 w-full bg-purple-200/60 dark:bg-purple-800/40" />
+                  <Skeleton className="h-3.5 w-5/6 bg-purple-200/60 dark:bg-purple-800/40" />
+                  <Skeleton className="h-3.5 w-4/5 bg-purple-200/60 dark:bg-purple-800/40" />
+                </div>
+              ) : (selectedEmail.aiReplySuggestions?.length ?? 0) > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedEmail.aiReplySuggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setReplyText(suggestion)}
+                      className="px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800/60 text-sm text-purple-900 dark:text-purple-200 bg-purple-100/50 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-all"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-purple-700 dark:text-purple-300 opacity-70">
+                  Click "Generate" to get AI-powered reply suggestions based on this email.
+                </p>
               )}
             </div>
 
@@ -229,7 +405,6 @@ export default function EmailDetailPane() {
                 <span className="text-sm font-semibold text-foreground">Smart Reply</span>
               </div>
 
-              {/* Tone selector */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Tone:</span>
                 <div className="flex gap-1.5">
@@ -250,7 +425,6 @@ export default function EmailDetailPane() {
                 </div>
               </div>
 
-              {/* Quick reply buttons */}
               <div className="flex flex-wrap gap-2">
                 {(["Approve", "Decline", "Let's schedule"] as const).map((type) => (
                   <motion.button
@@ -265,7 +439,6 @@ export default function EmailDetailPane() {
                 ))}
               </div>
 
-              {/* Reply textarea */}
               <Textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
@@ -273,7 +446,32 @@ export default function EmailDetailPane() {
                 className="min-h-[100px] text-sm resize-none"
               />
 
-              {/* Scheduled indicator */}
+              {/* Simple Schedule Form */}
+              <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                <input
+                  type="date"
+                  value={scheduleDateInput}
+                  onChange={(e) => setScheduleDateInput(e.target.value)}
+                  className="bg-white dark:bg-gray-800 border border-border rounded px-2 py-1.5 text-sm flex-1"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                <input
+                  type="time"
+                  value={scheduleTimeInput}
+                  onChange={(e) => setScheduleTimeInput(e.target.value)}
+                  className="bg-white dark:bg-gray-800 border border-border rounded px-2 py-1.5 text-sm"
+                />
+                <Button
+                  onClick={handleSchedule}
+                  disabled={!scheduleDateInput || !replyText.trim()}
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Clock className="w-3.5 h-3.5 mr-1" />
+                  Schedule
+                </Button>
+              </div>
+
               <AnimatePresence>
                 {scheduledFor && (
                   <motion.div
@@ -296,7 +494,6 @@ export default function EmailDetailPane() {
                 )}
               </AnimatePresence>
 
-              {/* Action buttons row */}
               <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="outline"
@@ -306,9 +503,7 @@ export default function EmailDetailPane() {
                   Clear
                 </Button>
 
-                {/* Split button: Send Now + Schedule Send dropdown */}
                 <div className="flex items-center">
-                  {/* Primary: Send Now */}
                   <Button
                     size="sm"
                     className="rounded-r-none border-r border-primary-border/40 pr-3"
@@ -319,7 +514,6 @@ export default function EmailDetailPane() {
                     {scheduledFor ? "Send Now" : "Send Reply"}
                   </Button>
 
-                  {/* Secondary: Schedule dropdown chevron */}
                   <Popover open={scheduleOpen} onOpenChange={setScheduleOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -337,7 +531,6 @@ export default function EmailDetailPane() {
                       className="w-auto p-0 overflow-hidden"
                       sideOffset={6}
                     >
-                      {/* Popover header */}
                       <div className="px-4 pt-4 pb-2 border-b border-border">
                         <div className="flex items-center gap-2">
                           <CalendarDays className="w-4 h-4 text-primary" />
@@ -348,7 +541,6 @@ export default function EmailDetailPane() {
                         </p>
                       </div>
 
-                      {/* Calendar */}
                       <div className="p-2">
                         <Calendar
                           mode="single"
@@ -359,14 +551,12 @@ export default function EmailDetailPane() {
                         />
                       </div>
 
-                      {/* Time picker */}
                       <div className="px-4 pb-4 pt-1 space-y-3">
                         <div className="flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                           <span className="text-xs font-medium text-foreground">Time</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {/* Hour select */}
                           <select
                             value={scheduleHour}
                             onChange={(e) => setScheduleHour(Number(e.target.value))}
@@ -379,7 +569,6 @@ export default function EmailDetailPane() {
                             ))}
                           </select>
                           <span className="text-muted-foreground text-sm">:</span>
-                          {/* Minute select */}
                           <select
                             value={scheduleMinute}
                             onChange={(e) => setScheduleMinute(Number(e.target.value))}
@@ -391,7 +580,6 @@ export default function EmailDetailPane() {
                           </select>
                         </div>
 
-                        {/* Preview label */}
                         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/60 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3 flex-shrink-0" />
                           <span>
@@ -401,7 +589,6 @@ export default function EmailDetailPane() {
                           </span>
                         </div>
 
-                        {/* Quick picks */}
                         <div className="flex gap-1.5 flex-wrap">
                           {[
                             { label: "Tomorrow 9 AM", d: addDays(new Date(), 1), h: 9, m: 0 },
@@ -418,7 +605,6 @@ export default function EmailDetailPane() {
                           ))}
                         </div>
 
-                        {/* Confirm button */}
                         <Button
                           size="sm"
                           className="w-full gap-1.5"
