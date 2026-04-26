@@ -10,18 +10,14 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 7860,
+    host: '0.0.0.0',
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
-        ws: false, // ← DON'T proxy WebSocket (HMR)
       },
-    },
-    hmr: {
-      host: 'localhost',
-      port: 5173, // Explicitly tell the client where to connect
     },
   },
 })
