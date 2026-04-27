@@ -16,5 +16,5 @@ COPY frontend/ ./frontend/
 # Expose Hugging Face default port
 EXPOSE 7860
 
-# Start backend in background, then frontend (listens on 7860)
-CMD cd backend && npm run dev & cd /app/frontend && npm run dev
+# Start backend in background, wait 8 seconds for backend to initialize, then start frontend
+CMD (cd backend && npm run dev &) && sleep 8 && cd /app/frontend && npm run dev
