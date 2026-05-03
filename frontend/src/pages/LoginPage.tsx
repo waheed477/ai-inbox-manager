@@ -6,7 +6,7 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/session', { credentials: 'include' })
+    fetch('https://beast49-inboxflow-backend.hf.space/api/auth/session', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data?.user) {
@@ -19,7 +19,7 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = () => {
-    window.location.href = '/api/auth/signin/google';
+    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google';
   };
 
   if (checking) {

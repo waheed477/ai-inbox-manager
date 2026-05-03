@@ -15,7 +15,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    fetch('/api/auth/session', { credentials: 'include' })
+    fetch('https://beast49-inboxflow-backend.hf.space/api/auth/session', { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data?.user) {
