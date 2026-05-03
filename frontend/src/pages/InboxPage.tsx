@@ -263,7 +263,6 @@ export default function InboxPage() {
                   key={email.id}
                   email={email}
                   isSelected={selectedEmail?.id === email.id}
-                  onClick={() => selectEmail(email.id)}
                 />
               ))}
             </AnimatePresence>

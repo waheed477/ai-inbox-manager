@@ -90,7 +90,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { emails, clearEmails } = useEmailStore();
+  const { emails } = useEmailStore();
   const unreadCount = emails.filter((e) => !e.isRead).length;
 
   // Real user session state

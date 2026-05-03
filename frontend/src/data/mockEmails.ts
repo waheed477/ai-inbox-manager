@@ -17,6 +17,7 @@ export interface Email {
   isImportant: boolean;
   category: Exclude<EmailCategory, "All">;
   labels?: string[];
+  isStarred: boolean;
 }
 
 export const sentEmails: Email[] = [];

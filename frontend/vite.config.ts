@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     port: 7860,
     host: '0.0.0.0',
+    allowedHosts: ['beast49-inboxflow-frontend.hf.space', 'localhost', '.hf.space'],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

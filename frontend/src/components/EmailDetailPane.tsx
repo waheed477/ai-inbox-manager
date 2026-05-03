@@ -374,7 +374,7 @@ export default function EmailDetailPane() {
                 </div>
               ) : (selectedEmail.aiReplySuggestions?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {selectedEmail.aiReplySuggestions.map((suggestion, i) => (
+                  {(selectedEmail.aiReplySuggestions || []).map((suggestion, i) => (
                     <button
                       key={i}
                       onClick={() => setReplyText(suggestion)}

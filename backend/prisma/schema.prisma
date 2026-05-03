@@ -69,4 +69,4 @@ model Settings {
   notifications Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-}
+}cd fro

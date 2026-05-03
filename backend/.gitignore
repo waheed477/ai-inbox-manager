@@ -1,0 +1,5 @@
+# Next.js build
+.next/
+node_modules/
+.env
+.env*.local
