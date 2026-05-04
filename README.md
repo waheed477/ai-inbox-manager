@@ -3,100 +3,159 @@ title: InboxFlow AI
 emoji: 📬
 colorFrom: blue
 colorTo: indigo
-app_port: 3000
 sdk: docker
 pinned: false
 ---
-# 📬 InboxFlow AI — AI-Powered Email Manager (SaaS)
 
-**Live Demo:** [beast49-inboxflow-ai.hf.space](https://beast49-inboxflow-ai.hf.space)  
-**GitHub:** [github.com/waheed477/ai-inbox-manager](https://github.com/waheed477/ai-inbox-manager)
+# 🚀 InboxFlow AI — AI-Powered Gmail Manager (Full-Stack SaaS)
 
----
+**Live Demo:** [inboxflowai.netlify.app](https://inboxflowai.netlify.app)  
+**GitHub Repo:** [github.com/waheed477/ai-inbox-manager](https://github.com/waheed477/ai-inbox-manager)
 
-## ✨ Features
-
-### 🔐 Authentication & Security
-- Google OAuth 2.0 (NextAuth.js) with Gmail scopes
-- Refresh token rotation & encrypted storage
-- Rate limiting, CORS, security headers, input validation (Zod)
-
-### 📥 Inbox Management
-- Real-time Gmail sync (fetch, store, display)
-- AI-powered email summarization & smart reply suggestions (Groq Llama 3.1)
-- 3-column responsive layout (sidebar, email list, detail pane)
-- Semantic search (⌘K command palette) with real backend search
-
-### ⚙️ Automation
-- **Rules Engine:** Create rules like "If from contains 'boss' → label Important"
-- **Schedule Send:** Compose & schedule emails for later delivery
-- **Auto-Archive:** Automatically archive promotions, newsletters, etc.
-- **Priority Inbox:** Toggle to see important/starred emails first
-
-### 🎨 Modern UI/UX
-- Dark mode (persisted in localStorage)
-- Professional white/dark theme with shadcn/ui components
-- Skeleton loaders, toast notifications, Framer Motion animations
-- Fully responsive (mobile hamburger menu)
-
-### 📊 Dashboard & Stats
-- Real-time stats: total emails, unread, starred, categories
-- Activity feed & AI usage summary
-- Email categories distribution
-
-### 🔧 Tech Stack
-- **Frontend:** React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Zustand, Framer Motion
-- **Backend:** Next.js 14 (App Router), TypeScript, Prisma ORM, MongoDB Atlas
-- **AI:** Groq SDK (Llama 3.1) for summarization & semantic search
-- **APIs:** Gmail API (Google OAuth2), custom REST endpoints
-- **Security:** NextAuth.js, Zod validation, AES-256 token encryption
-- **DevOps:** Docker, Hugging Face Spaces (deployment)
+> 🎥 **Watch the Demo Video (2 min):** [Insert Loom/YouTube Link Here]
 
 ---
 
-## 🛠️ Local Setup
+## 🔥 Why This Project?
+
+InboxFlow AI turns your Gmail into an intelligent assistant. Ask your inbox *"Find the client meeting about budget"* and get an instant answer. Built as a production-grade SaaS application, this project demonstrates the full stack of modern web development skills — from OAuth 2.0 security to AI integration.
+
+---
+
+## ✨ Key Features
+
+### 🧠 AI Integration
+- **Smart Summarization:** Emails are automatically summarized into concise bullet points (powered by Groq's Llama 3.1).
+- **Context-Aware Replies:** Generates smart reply suggestions based on the email's tone and content.
+
+### ⚙️ Backend Engineering
+- **Google OAuth 2.0:** Secure authentication with refresh token lifecycle management.
+- **Gmail API Sync:** Fetches and stores real emails in a MongoDB database.
+- **Custom Rules Engine:** A visual "If-Then" builder to automate email actions (label, archive, mark read).
+- **REST API Architecture:** 15+ endpoints for authentication, emails, AI, rules, settings, and semantic search.
+
+### 🔐 Enterprise-Grade Security
+- **Rate Limiting:** Custom in-memory rate limiter protects auth routes from brute-force attacks.
+- **Encrypted Token Storage:** AES-256-GCM encryption for sensitive credentials at rest.
+- **Zod Validation:** Every API input is strictly validated with type-safe schemas.
+- **Security Headers:** XSS protection, CSP, HSTS, and more configured via middleware.
+
+### 🎨 Professional UI/UX
+- **3-Column Responsive Layout:** Works flawlessly on desktop, tablet, and mobile.
+- **Dark & Light Modes:** Full theme support persisted in localStorage.
+- **⌘K Command Palette:** Semantic search across all emails with keyboard navigation.
+- **shadcn/ui Components:** Accessible, customizable, and modern UI components.
+- **Skeleton Loaders & Toasts:** Polished loading states and user notifications.
+
+---
+
+## 🛠️ Tech Stack
+
+| Category | Technologies |
+| :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Zustand, Framer Motion |
+| **Backend** | Next.js 14 (App Router), Node.js, NextAuth.js |
+| **Database** | MongoDB Atlas, Prisma ORM |
+| **AI/ML** | Groq SDK (Llama 3.1) for NLP tasks |
+| **Security** | NextAuth.js, Zod, AES-256-GCM, Custom Rate Limiter |
+| **DevOps** | Docker, Netlify (Frontend), Hugging Face Spaces (Backend) |
+| **Testing** | Browser DevTools, REST Client |
+
+---
+
+## 📂 Project Architecture
+ai-inbox-manager/
+├── frontend/ # React + Vite + Tailwind (Netlify)
+│ ├── src/
+│ │ ├── components/ # EmailRow, EmailDetailPane, SemanticSearchModal
+│ │ ├── pages/ # Inbox, Important, Sent, Dashboard, Settings, Login
+│ │ ├── store/ # Zustand stores (email, rules, schedule)
+│ │ └── lib/ # API client, utils
+├── backend/ # Next.js 14 App Router (Hugging Face)
+│ ├── app/api/ # Auth, Gmail, AI, Dashboard, Rules, Settings
+│ ├── lib/ # Prisma, Redis, Gmail client, Groq, Crypto, Validation
+│ ├── middleware.ts # Rate limiting, CORS, Security headers
+│ └── prisma/ # MongoDB schema
+└── README.md
+
+---
+
+## 🚀 Quick Start (Local)
 
 ```bash
-# Clone repo
+# Clone the repository
 git clone https://github.com/waheed477/ai-inbox-manager.git
 cd ai-inbox-manager
 
-# Backend
+# Backend setup
 cd backend
-cp .env.example .env.local   # fill Google OAuth keys, MongoDB URL, Groq API key
+cp .env.example .env.local   # Fill in your API keys
 npm install
 npx prisma generate
 npx prisma db push
-npm run dev
+npm run dev                   # Starts on http://localhost:3000
 
-# Frontend (new terminal)
+# Frontend setup (new terminal)
 cd frontend
 npm install
-npm run dev
+npm run dev                   # Starts on http://localhost:5173
+⚠️ Important: You need valid credentials for Google OAuth, Gmail API, MongoDB Atlas, and Groq. See Configuration Guide below.
 
-Visit http://localhost:5173
+⚙️ Configuration
+Create a .env.local file in the backend folder with the following variables:
 
-🚀 Deployment
-Dockerized deployment on Hugging Face Spaces (see Dockerfile & docker-compose.yml). Or deploy to Vercel/Render for both frontend & backend.
+env
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key
 
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
 
-📂 Project Structure
-text
-ai-inbox-manager/
-├── frontend/         # React + Vite + Tailwind + shadcn/ui
-│   ├── src/
-│   │   ├── components/   # EmailRow, EmailDetailPane, SemanticSearchModal, etc.
-│   │   ├── pages/        # Inbox, Important, Sent, Archived, Dashboard, Settings, Login
-│   │   ├── store/        # Zustand stores (email, rules, schedule)
-│   │   └── lib/          # API client, utils
-│   └── ...
-├── backend/          # Next.js 14 App Router
-│   ├── app/api/      # Auth, Gmail, AI, Dashboard, Rules, Settings, etc.
-│   ├── lib/          # Prisma, Redis, Gmail client, Groq, crypto, validation
-│   ├── workers/      # BullMQ background jobs (email sync, AI processing)
-│   ├── prisma/       # MongoDB schema
-│   └── middleware.ts # Rate limiting, security headers, CORS
-├── docker-compose.yml
-└── README.md
+# Database (MongoDB Atlas)
+DATABASE_URL=mongodb+srv://user:password@cluster.mongodb.net/dbname
 
-Built with ❤️ for modern SaaS recruitment....
+# Groq AI
+GROQ_API_KEY=gsk_your_api_key
+
+# Redis (Optional - for BullMQ)
+REDIS_URL=
+📦 Deployment
+Component	Platform	URL
+Frontend	Netlify	inboxflowai.netlify.app
+Backend	Hugging Face Spaces	beast49-inboxflow-backend.hf.space
+The frontend is deployed as a static site on Netlify with all API calls proxied to the Hugging Face backend. The backend is containerized with Docker.
+
+🧠 AI Features Deep Dive
+Email Summarization
+POST /api/ai/summarize — Takes an email body and returns a 2-3 bullet point summary. Uses Groq's Llama 3.1-8B model with optimized prompts for professional tone.
+
+Reply Suggestions
+POST /api/ai/reply-suggestions — Generates 3 contextually-aware reply options (affirmative, busy, more-info) based on the email content.
+
+Semantic Search
+POST /api/ai/search — Searches across all user emails using relevance scoring (subject, sender, body matching). Returns ranked results in real-time.
+
+🔗 API Endpoints
+Method	Endpoint	Description
+GET	/api/auth/session	Get current user session
+POST	/api/gmail/sync	Sync emails from Gmail
+GET	/api/gmail/messages	Get all synced emails
+POST	/api/ai/summarize	Generate AI email summary
+POST	/api/ai/reply-suggestions	Generate reply suggestions
+POST	/api/ai/search	Semantic email search
+GET/POST/PUT/DELETE	/api/rules	CRUD automation rules
+GET/PUT	/api/settings	User settings
+POST	/api/gmail/star	Toggle star on email
+POST	/api/gmail/archive	Archive an email
+POST	/api/gmail/delete	Delete an email
+POST	/api/gmail/schedule	Schedule an email
+GET	/api/gmail/archived	Get archived emails
+POST	/api/gmail/unarchive	Unarchive an email
+
+-----------------------------------------------------------------------
+📞 Contact
+Waheed Aslam • azlanch93@gmail.com
+
+Built with ❤️ for modern SaaS recruitment.
