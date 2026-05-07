@@ -10,15 +10,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 7860,
+    port: 5173,
     host: '0.0.0.0',
     allowedHosts: ['beast49-inboxflow-frontend.hf.space', 'localhost', '.hf.space'],
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
   },
 })
