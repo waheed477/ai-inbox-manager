@@ -51,12 +51,12 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async redirect({ url, baseUrl }) {
-      // Allow redirect to frontend (localhost:5173)
-      if (url.startsWith('http://localhost:5173')) return url;
-      // If relative URL, prepend frontend URL
-      if (url.startsWith('/')) return `http://localhost:5173${url}`;
-      // Fallback to frontend
-      return 'http://localhost:5173';
+      // Redirect to the live frontend on Netlify
+      if (url.startsWith('https://inboxflowai.netlify.app')) return url;
+      // If relative URL, prepend the live frontend URL
+      if (url.startsWith('/')) return `https://inboxflowai.netlify.app${url}`;
+      // Fallback to live frontend
+      return 'https://inboxflowai.netlify.app';
     },
     async jwt({ token, account, user }) {
       if (account) {
