@@ -20,8 +20,8 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = () => {
-    // Now redirects through the proxy
-    window.location.href = '/api/auth/signin/google';
+    // ✅ Updated: Redirect to backend's Google sign-in with callback to frontend
+    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google?callbackUrl=https://inboxflowai.netlify.app/';
   };
 
   if (checking) {
