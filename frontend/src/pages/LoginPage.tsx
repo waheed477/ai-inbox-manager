@@ -6,21 +6,27 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Now uses the proxied path
-    fetch('/api/auth/session', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
+    // Direct session check on the live backend (no proxy)
+    fetch('https://beast49-inboxflow-backend.hf.space/api/auth/session', {
+      credentials: 'include',
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Not authenticated');
+        return res.json();
+      })
+      .then((data) => {
         if (data?.user) {
           setLocation('/');
         } else {
           setChecking(false);
         }
       })
-      .catch(() => setChecking(false));
-  }, []);
+      .catch(() => {
+        setChecking(false);
+      });
+  }, [setLocation]);
 
   const handleLogin = () => {
-    // ✅ Updated: Redirect to backend's Google sign-in with callback to frontend
     window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google?callbackUrl=https://inboxflowai.netlify.app/';
   };
 
