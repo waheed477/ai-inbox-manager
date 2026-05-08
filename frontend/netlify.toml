@@ -6,6 +6,7 @@
   from = "/api/*"
   to = "https://beast49-inboxflow-backend.hf.space/api/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
