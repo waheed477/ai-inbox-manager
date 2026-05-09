@@ -6,7 +6,7 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Direct session check on the live backend (no proxy)
+    // Check if already logged in by calling the backend directly
     fetch('https://beast49-inboxflow-backend.hf.space/api/auth/session', {
       credentials: 'include',
     })
@@ -27,7 +27,7 @@ export default function LoginPage() {
   }, [setLocation]);
 
   const handleLogin = () => {
-    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google?callbackUrl=https://inboxmanager.netlify.app/';
+    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google';
   };
 
   if (checking) {
