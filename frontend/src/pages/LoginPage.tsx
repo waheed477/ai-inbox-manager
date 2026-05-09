@@ -27,7 +27,7 @@ export default function LoginPage() {
   }, [setLocation]);
 
   const handleLogin = () => {
-    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google?callbackUrl=https://inboxflowai.netlify.app/';
+    window.location.href = 'https://beast49-inboxflow-backend.hf.space/api/auth/signin/google?callbackUrl=https://inboxmanager.netlify.app/';
   };
 
   if (checking) {
